@@ -1,13 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const cors = require('cors');
+// const cors = require('cors');
 const app = express();
 const PORT = 3000;
-const serverless = require('serverless-http');
+// const serverless = require('serverless-http');
 
-app.use(cors());
-app.use(express.json());
+// app.use(cors());
+// app.use(express.json());
 // Serve index.html and static files
 app.use(express.static(path.join(__dirname, '..')));
 
@@ -99,4 +99,5 @@ app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-module.exports.handler = serverless(app);
+// module.exports.handler = serverless(app);
+module.exports = app;
