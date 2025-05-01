@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Location Insight Search</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      background: linear-gradient(to right, #eef2f3, #cfd9df);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .search-container {
+      width: 100%;
+      max-width: 700px;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      animation: fadeIn 0.4s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 1.1em;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #f7f9fa;
+      transition: border 0.3s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #5b9bd5;
+      background-color: #ffffff;
+    }
+
+    .results {
+      margin-top: 25px;
+    }
+
+    .result-item {
+      background-color: #fdfdfd;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s;
+    }
+
+    .result-item:hover {
+      transform: scale(1.01);
+    }
+
+    .result-item h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1.25em;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .result-item p {
+      margin: 6px 0;
+      font-size: 0.97em;
+      color: #333;
+    }
+
+    .score-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .score-item {
+      padding: 10px;
+      background: #f0f4f8;
+      border-radius: 8px;
+      font-size: 0.9em;
+      text-align: center;
+      color: #34495e;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px 0;
+      font-size: 1em;
+      color: #777;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto;
+      border: 4px solid #ccc;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      padding: 15px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="🔍 Enter an address (e.g. New York City)" />
+    <div class="results" id="results"></div>
+  </div>
+
+  <script>
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') performSearch();
+    });
+
+    function performSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) {
+        alert('Please enter a search term');
+        return;
+      }
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading data...</p></div>';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', `/api/search/?address=${encodeURIComponent(query)}`, true);
+
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            displayResults(data);
+          } catch (e) {
+            showError('Invalid response format from the server.');
+          }
+        } else {
+          showError('Failed to fetch data from the server.');
+        }
+      };
+
+      xhr.onerror = function () {
+        showError('Network error occurred while trying to reach the server.');
+      };
+
+      xhr.send();
+    }
+
+    function showError(message) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+    }
+
+    function displayResults(data) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+
+      if (!data || Object.keys(data).length === 0) {
+        resultsDiv.innerHTML = '<p>No results found for the given address.</p>';
+        return;
+      }
+
+      // Location
+      const loc = data.location;
+      resultsDiv.innerHTML += `
+        <div class="result-item">
+          <h3>📍 Location</h3>
+          <p><strong>City:</strong> ${loc.city}</p>
+          <p><strong>State:</strong> ${loc.state}</p>
+          <p><strong>Country:</strong> ${loc.country}</p>
+          <p><strong>Coordinates:</strong> ${loc.coordinates.latitude}, ${loc.coordinates.longitude}</p>
+        </div>`;
+
+      // Weather
+      const weather = data.weather;
+      resultsDiv.innerHTML += `
+        <div class="result-item">
+          <h3>⛅ Weather</h3>
+          <p><strong>Temperature:</strong> ${weather.temperature}</p>
+          <p><strong>Feels Like:</strong> ${weather.feels_like}</p>
+          <p><strong>Humidity:</strong> ${weather.humidity}</p>
+          <p><strong>Pressure:</strong> ${weather.pressure}</p>
+          <p><strong>Wind:</strong> ${weather.wind_speed} from ${weather.wind_direction}</p>
+          <p><strong>Cloudiness:</strong> ${weather.cloudiness}</p>
+          <p><strong>Visibility:</strong> ${weather.visibility}</p>
+          <p><strong>Conditions:</strong> ${weather.weather_conditions.map(c => c.description).join(', ')}</p>
+        </div>`;
+
+      // Air Quality
+      const air = data.air_quality;
+      resultsDiv.innerHTML += `
+        <div class="result-item">
+          <h3>🌫️ Air Quality</h3>
+          <p><strong>AQI:</strong> ${air.aqi}</p>
+          <div class="score-container">
+            ${Object.entries(air.components).map(([k, v]) => `
+              <div class="score-item">
+                <strong>${k.toUpperCase()}</strong><br>${v}
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
